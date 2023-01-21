@@ -14,84 +14,139 @@ namespace Sql_HW46
     public partial class Form1 : Form
     {
         SqlConnection connection;
-        DataSet data = new DataSet();
-        SqlDataAdapter adapter;
-        DataTable table;
-        SqlCommandBuilder commandBuilder;
+        DataSet data;
+        SqlDataAdapter adapter;        
+        SqlCommandBuilder commandBuilder;        
+        DataView dataView = new DataView();       
 
         public Form1()
         {
-            InitializeComponent();
-            connection = new SqlConnection(@"Data Source=DESKTOP-MHB46B8\SQLEXPRESS;Initial catalog=TaskLearnPlatform;Integrated Security=true;");
-            SqlCommand command = new SqlCommand("select * from TaskLearnPlatform.information_schema.tables", connection);
-
-            connection.Open();
-            SqlDataReader reader = command.ExecuteReader();
-            Tables_ComboBox.Items.Add("All");
-            while (reader.Read())
+            InitializeComponent(); 
+            try
             {
-                Tables_ComboBox.Items.Add(reader.GetString(2));
+                connection = new SqlConnection(@"Data Source=DESKTOP-MHB46B8\SQLEXPRESS;Initial catalog=TaskLearnPlatform;Integrated Security=true;");
+                SqlCommand command = new SqlCommand("select * from TaskLearnPlatform.information_schema.tables", connection);
+                connection.Open();
+                SqlDataReader reader = command.ExecuteReader();
+                Tables_ComboBox.Items.Add("All");
+                while (reader.Read())
+                {
+                    Tables_ComboBox.Items.Add(reader.GetString(2));
+                }
+                Tables_ComboBox.SelectedIndex = 0;
             }
-            Tables_ComboBox.SelectedIndex = 0;
-            connection.Close();
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                SelectAllFromTable_Button.Enabled = false;
+            }
+            finally
+            {
+                connection.Close();
+            }
+            
+            SwitchEnable(false);
+            Filter_GroupBox.Enabled = false;
+            NoSort_RadioButton.Checked = true;
         }
 
         private void SelectAllFromTable_Button_Click(object sender, EventArgs e)
         {
-            string cmd = "";
-            //чистка dataGridView
-            if (table != null)
+            try
             {
-                while (table.Rows.Count > 0)
-                {
-                    table.Rows.RemoveAt(0);
-                }
-                while (table.Columns.Count > 0)
-                {
-                    table.Columns.RemoveAt(0);
-                }
-                dataGridView1.DataSource = table;
-            }
+                dataGridView1.DataSource = new Clean(data).Action("");
 
-            if (Tables_ComboBox.SelectedItem.ToString() == "All")
-            {
-                foreach (var item in Tables_ComboBox.Items)
-                {                    
-                    if (item.ToString() != "All")
+                if (Tables_ComboBox.SelectedItem.ToString() == "All")
+                {
+                    SwitchEnable(false);
+                    data = new DataSet();
+                    foreach (var item in Tables_ComboBox.Items)
                     {
-                        cmd = $"select * from {item.ToString()};";
-                        commandBuilder = new SqlCommandBuilder(adapter);
-                        adapter = new SqlDataAdapter(cmd, connection);
-                        adapter.Fill(data);                      
+                        if (item.ToString() != "All")
+                        {
+                            adapter = new SqlDataAdapter($"select * from {item.ToString()};", connection);
+                            adapter.Fill(data);
+                        }
                     }
                 }
+                else
+                {
+                    SwitchEnable(true);
+                    data = new DataSet();
+                    adapter = new SqlDataAdapter($"Select * from {Tables_ComboBox.SelectedItem.ToString()};", connection);
+                    commandBuilder = new SqlCommandBuilder(adapter);
+                    adapter.Fill(data);
+                }
+
+                dataGridView1.DataSource = new Sort(data).Action(String.Empty);
+                NoSort_RadioButton.Checked = true;
+                Filter_GroupBox.Enabled = true;
+                Filter_TextBox.Text = "";
             }
-            else
+            catch (Exception ex)
             {
-                cmd = $"Select * from {Tables_ComboBox.SelectedItem.ToString()};";
-                adapter = new SqlDataAdapter(cmd, connection);
-                commandBuilder = new SqlCommandBuilder(adapter);
-                adapter.Fill(data);
+                MessageBox.Show(ex.Message);
             }
             
-            table = data.Tables[0];
-            dataGridView1.DataSource = table;
-        }
+        }       
 
         private void Update_Button_Click(object sender, EventArgs e)
-        {
-            
+        {            
             adapter.Update(data);
+        }      
+
+        public void SwitchEnable(bool key)
+        {
+            Sort_GroupBox.Enabled = key;            
+            Update_Button.Enabled = key;
+        }        
+
+        private void Tables_ComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (Tables_ComboBox.SelectedItem.ToString() != "All")
+            {                
+                ColumnName_ComboBox.Items.Clear();
+                SqlCommand command = new SqlCommand($"select * from {Tables_ComboBox.SelectedItem.ToString()}", connection);
+
+                connection.Open();
+                SqlDataReader reader = command.ExecuteReader();                
+                while (reader.Read())
+                {
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        ColumnName_ComboBox.Items.Add(reader.GetName(i));
+                    }
+                    break;
+                }
+                connection.Close();
+                SwitchEnable(false);
+                Filter_GroupBox.Enabled = false;
+                ColumnName_ComboBox.SelectedIndex = 0;                             
+            } 
+            else SwitchEnable(false);
         }
 
-        private void button1_Click_1(object sender, EventArgs e)
+        private void ColumnName_ComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string res = "";
-            res += dataGridView1.SelectedCells[0].Value.ToString() + Environment.NewLine;
-            res += dataGridView1.SelectedCells[0].ColumnIndex.ToString() + ":" + dataGridView1.SelectedCells[0].RowIndex.ToString() + Environment.NewLine;
-            res += data.Tables[0].Columns[dataGridView1.SelectedCells[0].ColumnIndex].ColumnName + Environment.NewLine;
-            res += dataGridView1.SelectedCells[0].Value;
-            MessageBox.Show(res);
+            NoSort_RadioButton.Checked = true;            
+        }
+
+        private void Sort_Button_Click(object sender, EventArgs e)
+        {
+            if (DescSort_RadioButton.Checked)            
+                dataGridView1.DataSource = new Sort(data).Action($"{ColumnName_ComboBox.SelectedItem.ToString()} DESC");
+            
+            if (AscSort_RadioButton.Checked)            
+                dataGridView1.DataSource = new Sort(data).Action($"{ColumnName_ComboBox.SelectedItem.ToString()} ASC");
+            
+            if (NoSort_RadioButton.Checked && Tables_ComboBox.SelectedItem.ToString() != "All")
+                dataGridView1.DataSource = new Sort(data).Action(String.Empty);
+            Filter_TextBox.Text = "";
+        }       
+
+        private void OnFilter_Button_Click(object sender, EventArgs e)
+        {
+            dataGridView1.DataSource = new FilterData(data).Action(Filter_TextBox.Text);
         }
     }
 }
