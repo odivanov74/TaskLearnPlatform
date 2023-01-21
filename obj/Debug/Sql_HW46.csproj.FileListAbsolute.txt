@@ -1,0 +1,10 @@
+D:\oas\C#\Sql_HW46\bin\Debug\Sql_HW46.exe.config
+D:\oas\C#\Sql_HW46\bin\Debug\Sql_HW46.exe
+D:\oas\C#\Sql_HW46\bin\Debug\Sql_HW46.pdb
+D:\oas\C#\Sql_HW46\obj\Debug\Sql_HW46.csproj.AssemblyReference.cache
+D:\oas\C#\Sql_HW46\obj\Debug\Sql_HW46.Form1.resources
+D:\oas\C#\Sql_HW46\obj\Debug\Sql_HW46.Properties.Resources.resources
+D:\oas\C#\Sql_HW46\obj\Debug\Sql_HW46.csproj.GenerateResource.cache
+D:\oas\C#\Sql_HW46\obj\Debug\Sql_HW46.csproj.CoreCompileInputs.cache
+D:\oas\C#\Sql_HW46\obj\Debug\Sql_HW46.exe
+D:\oas\C#\Sql_HW46\obj\Debug\Sql_HW46.pdb
